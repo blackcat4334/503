@@ -1,0 +1,45 @@
+import tensorflow as tf
+from tensorflow.keras import layers, models
+import numpy as np
+from sklearn.model_selection import train_test_split
+from sklearn.datasets import make_classification
+
+# Generate a synthetic dataset
+def generate_data():
+    X, y = make_classification(n_samples=10000, n_features=20, n_classes=2, random_state=42)
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+    return X_train, X_test, y_train, y_test
+
+# Define and compile a simple neural network model
+def build_model(input_shape):
+    model = models.Sequential([
+        layers.Dense(64, activation='relu', input_shape=input_shape),
+        layers.Dense(32, activation='relu'),
+        layers.Dense(1, activation='sigmoid')
+    ])
+    model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
+    return model
+
+# Use tf.data for faster data loading and preprocessing
+def prepare_data(X, y, batch_size=32):
+    dataset = tf.data.Dataset.from_tensor_slices((X, y))
+    dataset = dataset.shuffle(buffer_size=1000).batch(batch_size).prefetch(buffer_size=tf.data.AUTOTUNE)
+    return dataset
+
+# Main function to run the training
+def main():
+    # Generate and preprocess data
+    X_train, X_test, y_train, y_test = generate_data()
+    train_dataset = prepare_data(X_train, y_train)
+    test_dataset = prepare_data(X_test, y_test)
+
+    # Build and train the model
+    model = build_model((X_train.shape[1],))
+    model.fit(train_dataset, epochs=10, validation_data=test_dataset)
+
+    # Evaluate the model
+    test_loss, test_acc = model.evaluate(test_dataset)
+    print(f"Test Accuracy: {test_acc:.2f}")
+
+if __name__ == "__main__":
+    main()
